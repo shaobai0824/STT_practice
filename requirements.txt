@@ -1,0 +1,52 @@
+tdqm
+# ==================================================
+# Requirements for a Whisper Fine-tuning Project
+# ==================================================
+
+# Core Hugging Face ecosystem
+# transformers: For models, trainer, and processors
+# datasets: For data handling, especially audio
+# evaluate: For calculating metrics like WER
+# accelerate: Used by the Trainer for optimizing performance (e.g., fp16)
+# huggingface_hub: For logging in and uploading models
+transformers==4.53.1
+datasets==3.6.0
+evaluate==0.4.4
+accelerate==1.8.1
+huggingface_hub==0.33.2
+
+# Data processing and utilities
+# pandas: For reading the initial CSV file
+# librosa & soundfile: Essential dependencies for datasets to read and process audio files
+pandas>=2.1.4
+librosa==0.11.0
+soundfile==0.13.1
+
+
+
+# Visualization and Notebook support
+# tensorboard: For logging and viewing training curves
+# ipykernel: To make the virtual environment recognizable by Jupyter/VS Code notebooks
+tensorboard==2.19.0
+ipykernel==6.29.5
+
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 
+jiwer==4.0.0
+
+# Semantic similarity evaluation
+# sentence-transformers: For generating text embeddings/vectors
+# scikit-learn: For cosine similarity calculations
+# scipy: For distance computations
+# numpy: Enhanced numerical operations
+sentence-transformers==5.0.0
+scikit-learn==1.7.0
+scipy==1.16.0
+numpy>=1.26.4
+
+# PyTorch GPU 版本 - 需要手動安裝
+# torch==2.5.1+cu121
+# torchvision==0.20.1+cu121
+# torchaudio==2.5.1+cu121
+torchcodec
+tdqm==0.0.1
+Levenshtein
