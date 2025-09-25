@@ -51,28 +51,73 @@ def load_semantic_model():
 
 @dataclass
 class DataCollatorSpeechSeq2SeqWithPadding:
-    """處理語音到序列資料的 Data Collator，負責將樣本整理成批次並進行填充。"""
+    """
+    處理語音到序列資料的 Data Collator，負責將樣本整理成批次並進行填充。
+    
+    主要功能：
+    ------------------------------------------------------------------------------
+    1. 批次資料整理：將不同長度的音訊和文字樣本整理成相同大小的批次
+    2. 填充處理：使用 padding 讓所有樣本具有相同的維度
+    3. Attention Mask 建立：標記哪些位置是真實資料，哪些是填充
+    4. 標籤處理：準備訓練用的標籤，並處理特殊 token
+    
+    輸入範例：
+    - features[0]: {"input_features": [80, 2500], "labels": [50258, 16563, 16563, 50259]}
+    - features[1]: {"input_features": [80, 3000], "labels": [50258, 16563, 16563, 16563, 50259]}
+    
+    輸出範例：
+    - batch["input_features"]: shape = [2, 80, 3000] (填充到最大長度)
+    - batch["labels"]: shape = [2, 5] (填充到最大長度)
+    - batch["attention_mask"]: shape = [2, 3000] (標記真實資料位置)
+    """
 
     processor: Any
 
     def __call__(
         self, features: List[Dict[str, Union[List[int], torch.Tensor]]]
     ) -> Dict[str, torch.Tensor]:
+        # 步驟 1: 整理音訊特徵
         input_features = [
             {"input_features": feature["input_features"]} for feature in features
         ]
+        # 使用特徵提取器進行填充
         batch = self.processor.feature_extractor.pad(
             input_features, return_tensors="pt"
         )
+        # 輸出：batch["input_features"] shape = [batch_size, 80, max_time_steps]
+        # 輸出：batch["attention_mask"] shape = [batch_size, max_time_steps]
+        # attention_mask: 1 = 真實資料, 0 = 填充位置
+        
+        # 步驟 2: 整理文字標籤
         label_features = [{"input_ids": feature["labels"]} for feature in features]
         labels_batch = self.processor.tokenizer.pad(label_features, return_tensors="pt")
+        # 輸出：labels_batch["input_ids"] shape = [batch_size, max_sequence_length]
+        # 輸出：labels_batch["attention_mask"] shape = [batch_size, max_sequence_length]
+        
+        # 步驟 3: 建立訓練標籤 (Attention Mask 處理)
         labels = labels_batch["input_ids"].masked_fill(
             labels_batch.attention_mask.ne(1), -100
         )
+        # masked_fill 功能：
+        # - attention_mask = 1 的位置：保留原始 token ID
+        # - attention_mask = 0 的位置：填充為 -100 (忽略計算損失)
+        # 範例：
+        # input_ids:     [50258, 16563, 16563, 50259, 0, 0]
+        # attention_mask: [1,     1,     1,     1,     0, 0]
+        # labels:        [50258, 16563, 16563, 50259, -100, -100]
+        
+        # 步驟 4: 移除 BOS Token (如果存在)
         if (labels[:, 0] == self.processor.tokenizer.bos_token_id).all().cpu().item():
             labels = labels[:, 1:]
+        # 原因：BOS token 不需要預測，因為它是輸入的一部分
+        
+        # 步驟 5: 組合最終批次
         batch["labels"] = labels
         return batch
+        # 最終輸出：
+        # - batch["input_features"]: 音訊特徵 [batch_size, 80, max_time_steps]
+        # - batch["attention_mask"]: 音訊注意力遮罩 [batch_size, max_time_steps]
+        # - batch["labels"]: 訓練標籤 [batch_size, max_sequence_length]
 
 
 def prepare_dataset_batched(batch, feature_extractor, tokenizer):
