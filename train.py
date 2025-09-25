@@ -87,7 +87,7 @@ def prepare_dataset_batched(batch, feature_extractor, tokenizer):
     
     步驟 1: 音訊重採樣 (Audio Resampling)
     - 從 44,100 Hz → 16,000 Hz (Whisper 標準)
-    - 重採樣後：shape = [1,480,000] (16,000 × 30 秒)
+    - 重採樣後：shape = [480,000] (16,000 × 30 秒)
     
     步驟 2: STFT (短時距傅立葉變換)
     - 音框大小：25ms，重疊：10ms
