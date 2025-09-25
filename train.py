@@ -54,6 +54,29 @@ class DataCollatorSpeechSeq2SeqWithPadding:
     """
     處理語音到序列資料的 Data Collator，負責將樣本整理成批次並進行填充。
     
+    執行時機：
+    ------------------------------------------------------------------------------
+    __call__ 方法在以下時機被自動呼叫：
+    1. DataLoader 需要建立一個批次時 (每個 training step)
+    2. 此時資料已經過 prepare_dataset_batched 處理
+    3. 每個樣本都已經是梅爾頻譜圖 [80, time_steps] 和 token 序列
+    
+    資料流程：
+    ------------------------------------------------------------------------------
+    原始音訊檔案 → prepare_dataset_batched → __call__ → 模型訓練
+    
+    階段 1 (prepare_dataset_batched):
+    - 讀取 .wav 檔案
+    - 重採樣到 16kHz
+    - STFT + 梅爾轉換 → [80, time_steps]
+    - 文字標記化 → [token_ids]
+    
+    階段 2 (__call__):
+    - 接收多個已處理的樣本
+    - 填充到相同維度
+    - 建立 attention mask
+    - 準備訓練標籤
+    
     主要功能：
     ------------------------------------------------------------------------------
     1. 批次資料整理：將不同長度的音訊和文字樣本整理成相同大小的批次
@@ -61,7 +84,7 @@ class DataCollatorSpeechSeq2SeqWithPadding:
     3. Attention Mask 建立：標記哪些位置是真實資料，哪些是填充
     4. 標籤處理：準備訓練用的標籤，並處理特殊 token
     
-    輸入範例：
+    輸入範例 (已經過 prepare_dataset_batched 處理)：
     - features[0]: {"input_features": [80, 2500], "labels": [50258, 16563, 16563, 50259]}
     - features[1]: {"input_features": [80, 3000], "labels": [50258, 16563, 16563, 16563, 50259]}
     
@@ -76,6 +99,14 @@ class DataCollatorSpeechSeq2SeqWithPadding:
     def __call__(
         self, features: List[Dict[str, Union[List[int], torch.Tensor]]]
     ) -> Dict[str, torch.Tensor]:
+        """
+        執行時機：DataLoader 每次需要建立一個批次時自動呼叫
+        
+        此時 features 參數包含：
+        - 多個已經過 prepare_dataset_batched 處理的樣本
+        - 每個樣本都已經是梅爾頻譜圖和 token 序列
+        - 但長度可能不同，需要填充到相同維度
+        """
         # 步驟 1: 整理音訊特徵
         input_features = [
             {"input_features": feature["input_features"]} for feature in features

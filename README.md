@@ -11,8 +11,8 @@
 #   * 80: 梅爾頻率特徵維度 (Mel Frequency Features)
 #   * 3000: 時間步數 (Time Steps, 約30秒音訊)
 # - 核心機制：自注意力機制 (Self-Attention)
-# - 輸出：富含上下文資訊的隱藏狀態 [batch_size, 3000, 512]
-#   * 512: Whisper-small 的隱藏維度
+# - 輸出：富含上下文資訊的隱藏狀態 [batch_size, 3000, 768]
+#   * 768: Whisper-small 的隱藏維度
 # 
 # 1.2 解碼器 (Decoder) 的角色：生成文字
 # - 輸入：編碼器隱藏狀態 + 已生成文字序列
