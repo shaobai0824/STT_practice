@@ -90,15 +90,16 @@ def prepare_dataset_batched(batch, feature_extractor, tokenizer):
     - 重採樣後：shape = [480,000] (16,000 × 30 秒)
     
     步驟 2: STFT (短時距傅立葉變換)
-    - 音框大小：25ms，重疊：10ms
-    - 音框數：30秒 ÷ 0.025秒 = 1,200 個音框
-    - 每個音框：512 個頻率點
-    - STFT 輸出：shape = [1,200, 512]
+    - n_fft：400 (FFT 大小)
+    - hop_length：160 (步長，10ms @ 16kHz)
+    - 音框數：30,000ms ÷ 10ms = 3,000 個音框
+    - 每個音框：201 個頻率點 (n_fft=400 → 400//2+1=201)
+    - STFT 輸出：shape = [3,000, 201]
     
     步驟 3: 梅爾頻譜轉換 (Mel Spectrogram)
     - 梅爾濾波器組：80 個濾波器
-    - 梅爾頻譜：shape = [1,200, 80]
-    - 時間軸壓縮：1,200 → 3,000 (每 0.4 個音框合併)
+    - 梅爾頻譜：shape = [3,000, 80] (201 個頻率點 → 80 個梅爾頻率)
+    - 時間軸壓縮：3,000 → 3,000 (保持不變)
     - 最終梅爾頻譜：shape = [80, 3,000]
     
     步驟 4: 對數轉換 (Log Transformation)
@@ -291,8 +292,9 @@ def main():
     # 載入 Whisper 模型 (Transformer 編碼器-解碼器)
     model = WhisperForConditionalGeneration.from_pretrained(MODEL_NAME)
     # 模型架構：
-    # - 編碼器：6層 Transformer，隱藏維度 512
-    # - 解碼器：6層 Transformer，隱藏維度 512
+    # - 編碼器：12層 Transformer，隱藏維度 768
+    # - 解碼器：12層 Transformer，隱藏維度 768
+    # - 注意力頭數：12
     # - 參數總數：約 244M (whisper-small)
     
     # 模型配置調整
